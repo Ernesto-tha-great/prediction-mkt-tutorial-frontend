@@ -35,7 +35,7 @@ const Market = ({ market }: Props) => {
         address: marketAddress,
         abi: marketAbi,
         functionName: "buyShares",
-        args: [market.id, isYes, parseUnits(amount, 18)],
+        args: [market.id, isYes, amount],
       });
       console.log("transaction hash", buyShareTx);
     } catch (err: any) {

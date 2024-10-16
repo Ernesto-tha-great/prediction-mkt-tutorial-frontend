@@ -6,11 +6,12 @@ import {
   useReadContract,
   useDisconnect,
   useWriteContract,
+  useBalance,
 } from "wagmi";
 import { useWeb3Modal } from "@web3modal/wagmi/react";
-import { marketAddress, marketAbi } from "../constants";
+import { marketAddress, marketAbi, tokenAbi, tokenAddress } from "../constants";
 import Market from "./Market";
-import { parseUnits } from "viem";
+import { formatEther, formatUnits, parseUnits } from "viem";
 
 const Markets = () => {
   const { address, isConnected } = useAccount();
@@ -86,6 +87,47 @@ const Markets = () => {
     }
   };
 
+  // Get token balance
+  const { data: tokenBalance } = useBalance({
+    address,
+    token: tokenAddress,
+  });
+
+  // Check token allowance
+  const { data: tokenAllowance, refetch: refetchAllowance } = useReadContract({
+    address: tokenAddress,
+    abi: tokenAbi,
+    functionName: "allowance",
+    args: [address, marketAddress],
+  }) as any;
+
+  const handleApproveTokens = async () => {
+    if (!isConnected) {
+      open();
+      return;
+    }
+
+    try {
+      await writeContractAsync({
+        address: tokenAddress,
+        abi: tokenAbi,
+        functionName: "approve",
+        args: [marketAddress, parseUnits("1000000", 18)], // Approve a large amount
+      });
+      console.log("Token approval successful");
+      refetchAllowance();
+    } catch (error) {
+      console.error("Error approving tokens:", error);
+    }
+  };
+
+  const formatBalance = (balance: bigint, decimals: number) => {
+    console.log("Raw balance:", balance.toString());
+    console.log("Decimals:", decimals);
+
+    return balance.toString();
+  };
+
   console.log("Current markets state:", markets);
 
   return (
@@ -93,10 +135,27 @@ const Markets = () => {
       <div className="mb-8 flex justify-between items-center">
         {isConnected ? (
           <>
-            <p className="text-lg">
-              Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
-            </p>
             <div>
+              <p className="text-lg mb-2">
+                Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
+              </p>
+              <p className="text-sm">
+                Token Balance:{" "}
+                {tokenBalance
+                  ? formatBalance(tokenBalance.value, tokenBalance.decimals)
+                  : "0"}{" "}
+                {tokenBalance?.symbol}
+              </p>
+            </div>
+            <div>
+              {tokenAllowance !== undefined && Number(tokenAllowance) === 0 && (
+                <button
+                  onClick={handleApproveTokens}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded mr-4 transition duration-300"
+                >
+                  Approve Tokens
+                </button>
+              )}
               <button
                 onClick={() => setIsCreatingMarket(true)}
                 className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mr-4 transition duration-300"
