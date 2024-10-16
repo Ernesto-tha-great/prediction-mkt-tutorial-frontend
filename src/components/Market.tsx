@@ -35,7 +35,7 @@ const Market = ({ market }: Props) => {
         address: marketAddress,
         abi: marketAbi,
         functionName: "buyShares",
-        args: [market.id, isYes, parseUnits(amount, 18)],
+        args: [market.id, isYes, amount],
       });
       console.log("transaction hash", buyShareTx);
     } catch (err: any) {
@@ -49,7 +49,7 @@ const Market = ({ market }: Props) => {
     });
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-6">
+    <div className="bg-white shadow-md rounded-lg p-6 text-black">
       <h3 className="text-xl font-semibold mb-2">{market.cryptoPair}</h3>
       <p className="mb-2">
         Strike Price: {formatUnits(BigInt(market.strikePrice), 18)}
