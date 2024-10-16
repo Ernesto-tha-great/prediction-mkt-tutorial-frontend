@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   useAccount,
   useReadContract,
@@ -16,7 +16,7 @@ const Markets = () => {
   const { address, isConnected } = useAccount();
   const { open } = useWeb3Modal();
   const { disconnect } = useDisconnect();
-  const [markets, setMarkets] = useState<Array<object>>([]);
+  const [markets, setMarkets] = useState<Array<any>>([]);
   const [isCreatingMarket, setIsCreatingMarket] = useState(false);
   const [newMarket, setNewMarket] = useState({
     cryptoPair: "",
@@ -26,49 +26,52 @@ const Markets = () => {
     pythPriceId: "",
   });
 
-  const { data: marketCount } = useReadContract({
+  const { data: allMarkets, refetch: refetchMarkets } = useReadContract({
     address: marketAddress,
     abi: marketAbi,
-    functionName: "marketCount",
+    functionName: "getAllMarkets",
   });
 
-  const { writeContract } = useWriteContract();
-
-  const fetchMarkets = async () => {
-    if (marketCount) {
-      const fetchedMarkets = [];
-      for (let i = 1; i <= Number(marketCount); i++) {
-        const marketData = await useReadContract({
-          address: marketAddress,
-          abi: marketAbi,
-          functionName: "getMarketDetails",
-          args: [i],
-        });
-        fetchedMarkets.push({ id: i, ...marketData });
-      }
-      setMarkets(fetchedMarkets);
-    }
-  };
+  const { writeContractAsync } = useWriteContract();
 
   useEffect(() => {
-    fetchMarkets();
-  }, [marketCount]);
+    if (Array.isArray(allMarkets)) {
+      const formattedMarkets = allMarkets.map((market: any, index: number) => ({
+        id: index + 1,
+        cryptoPair: market.cryptoPair,
+        strikePrice: market.strikePrice,
+        endTime: market.endTime,
+        resolutionTime: market.resolutionTime,
+        totalYesShares: market.totalYesShares,
+        totalNoShares: market.totalNoShares,
+        resolved: market.resolved,
+        outcome: market.outcome,
+      }));
+      setMarkets(formattedMarkets);
+      console.log("Fetched markets:", formattedMarkets);
+    }
+  }, [allMarkets]);
 
   const handleCreateMarket = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
-      await writeContract({
+      console.log("Creating market with data:", newMarket);
+      await writeContractAsync({
         address: marketAddress,
         abi: marketAbi,
         functionName: "createMarket",
         args: [
           newMarket.cryptoPair,
           parseUnits(newMarket.strikePrice, 18),
-          Math.floor(new Date(newMarket.endTime).getTime() / 1000),
-          Math.floor(new Date(newMarket.resolutionTime).getTime() / 1000),
-          newMarket.pythPriceId,
+          BigInt(Math.floor(new Date(newMarket.endTime).getTime() / 1000)),
+          BigInt(
+            Math.floor(new Date(newMarket.resolutionTime).getTime() / 1000)
+          ),
+          newMarket.pythPriceId as `0x${string}`,
         ],
       });
+      console.log("Market created successfully");
       setIsCreatingMarket(false);
       setNewMarket({
         cryptoPair: "",
@@ -77,42 +80,53 @@ const Markets = () => {
         resolutionTime: "",
         pythPriceId: "",
       });
-      fetchMarkets();
+      refetchMarkets();
     } catch (error) {
       console.error("Error creating market:", error);
     }
   };
 
+  console.log("Current markets state:", markets);
+
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* user connect */}
-      {isConnected ? (
-        <div className="mb-8 flex justify-between items-center">
-          <p className="text-lg">
-            Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
-          </p>
+      <div className="mb-8 flex justify-between items-center">
+        {isConnected ? (
+          <>
+            <p className="text-lg">
+              Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
+            </p>
+            <div>
+              <button
+                onClick={() => setIsCreatingMarket(true)}
+                className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mr-4 transition duration-300"
+              >
+                Create New Market
+              </button>
+              <button
+                onClick={() => disconnect()}
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition duration-300"
+              >
+                Disconnect
+              </button>
+            </div>
+          </>
+        ) : (
           <button
-            onClick={() => disconnect()}
-            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition duration-300"
+            onClick={() => open()}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300"
           >
-            Disconnect
+            Connect Wallet
           </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => open()}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg mb-8 transition duration-300"
-        >
-          Connect Wallet
-        </button>
-      )}
+        )}
+      </div>
 
       <h2 className="text-3xl font-bold mb-6">Prediction Markets</h2>
 
       {markets.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {markets.map((market, index) => (
-            <Market key={index} market={market} />
+          {markets.map((market) => (
+            <Market key={market.id} market={market} />
           ))}
         </div>
       ) : (
@@ -129,7 +143,7 @@ const Markets = () => {
         </div>
       )}
 
-      {/* MODAL  */}
+      {/* Modal for creating a new market */}
       {isCreatingMarket && (
         <div className="fixed inset-0 text-black bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-8 rounded-lg max-w-md w-full">

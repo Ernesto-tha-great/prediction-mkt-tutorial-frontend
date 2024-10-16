@@ -59,6 +59,55 @@ export const marketAbi = [
   },
   {
     type: "function",
+    name: "getAllMarkets",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "tuple[]",
+        internalType: "struct CryptoPredictionsMarket.Market[]",
+        components: [
+          { name: "id", type: "uint256", internalType: "uint256" },
+          {
+            name: "cryptoPair",
+            type: "string",
+            internalType: "string",
+          },
+          {
+            name: "strikePrice",
+            type: "uint256",
+            internalType: "uint256",
+          },
+          { name: "endTime", type: "uint256", internalType: "uint256" },
+          {
+            name: "resolutionTime",
+            type: "uint256",
+            internalType: "uint256",
+          },
+          {
+            name: "pythPriceId",
+            type: "bytes32",
+            internalType: "bytes32",
+          },
+          {
+            name: "totalYesShares",
+            type: "uint256",
+            internalType: "uint256",
+          },
+          {
+            name: "totalNoShares",
+            type: "uint256",
+            internalType: "uint256",
+          },
+          { name: "resolved", type: "bool", internalType: "bool" },
+          { name: "outcome", type: "bool", internalType: "bool" },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "getMarketDetails",
     inputs: [{ name: "_marketId", type: "uint256", internalType: "uint256" }],
     outputs: [
