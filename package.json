@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@pythnetwork/pyth-evm-js": "^1.73.0",
     "@web3modal/wagmi": "^5.1.11",
     "ethers": "^6.13.4",
     "next": "14.2.15",

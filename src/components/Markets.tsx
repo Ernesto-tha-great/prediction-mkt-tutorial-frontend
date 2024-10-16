@@ -42,6 +42,7 @@ const Markets = () => {
         cryptoPair: market.cryptoPair,
         strikePrice: market.strikePrice,
         endTime: market.endTime,
+        pythPriceId: market.pythPriceId,
         resolutionTime: market.resolutionTime,
         totalYesShares: market.totalYesShares,
         totalNoShares: market.totalNoShares,
