@@ -1,8 +1,8 @@
 "use client";
-
+import { EvmPriceServiceConnection } from "@pythnetwork/pyth-evm-js";
 import { useState } from "react";
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { parseUnits, formatUnits } from "viem";
+import { parseUnits, formatUnits, parseEther, pad, hexToBytes } from "viem";
 import { marketAddress, marketAbi } from "../constants";
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
     cryptoPair: string;
     strikePrice: string;
     endTime: string;
+    pythPriceId: BigInt;
     resolutionTime: string;
     totalYesShares: string;
     totalNoShares: string;
@@ -43,6 +44,46 @@ const Market = ({ market }: Props) => {
     }
   };
 
+  const handleResolveMarket = async () => {
+    console.log("Original Pyth Price ID:", market.pythPriceId);
+
+    try {
+      const connection = new EvmPriceServiceConnection(
+        "https://hermes.pyth.network"
+      );
+      const priceFeedUpdateData = await connection.getPriceFeedsUpdateData([
+        market.pythPriceId.toString(),
+      ]);
+
+      const resolveMarketTx = writeContractAsync({
+        address: marketAddress,
+        abi: marketAbi,
+        functionName: "resolveMarket",
+        args: [market.id, priceFeedUpdateData as any],
+        value: parseEther("0.001"),
+      });
+
+      console.log("Transaction data", resolveMarketTx);
+    } catch (err: any) {
+      console.log("Transaction Failed: " + err.message);
+    }
+  };
+
+  const handleClaimRewards = async () => {
+    try {
+      const claimRewardsTx = writeContractAsync({
+        address: marketAddress,
+        abi: marketAbi,
+        functionName: "claimRewards",
+        args: [market.id],
+      });
+
+      console.log("Transaction data", claimRewardsTx);
+    } catch (err: any) {
+      console.log("Transaction Failed: " + err.message);
+    }
+  };
+
   const { isLoading: isBuyLoading, isSuccess: isBuySuccess } =
     useWaitForTransactionReceipt({
       hash: hash,
@@ -51,12 +92,27 @@ const Market = ({ market }: Props) => {
   return (
     <div className="bg-white shadow-md rounded-lg p-6 text-black">
       <h3 className="text-xl font-semibold mb-2">{market.cryptoPair}</h3>
-      <p className="mb-2">
-        Strike Price: {formatUnits(BigInt(market.strikePrice), 18)}
-      </p>
-      <p className="mb-4">
-        End Time: {new Date(Number(market.endTime) * 1000).toLocaleString()}
-      </p>
+      <div className="">
+        <div className="flex items-center justify-between">
+          <p className="mb-2">
+            Strike Price: {formatUnits(BigInt(market.strikePrice), 18)}
+          </p>
+          <p className="mb-4">
+            End Time: {new Date(Number(market.endTime) * 1000).toLocaleString()}
+          </p>
+        </div>
+
+        <div className="text-sm">
+          <p>Total yes shares: {market.totalYesShares.toString()}</p>
+          <p>Total No shares: {market.totalNoShares.toString()}</p>
+          <button
+            onClick={handleClaimRewards}
+            className=" bg-red-500 hover:bg-red-600 text-white font-bold py-2 my-2 px-4 rounded disabled:bg-gray-400"
+          >
+            claim
+          </button>
+        </div>
+      </div>
       <input
         type="number"
         value={amount}
@@ -79,9 +135,17 @@ const Market = ({ market }: Props) => {
       >
         {isBuyLoading ? "Buying..." : "Buy Shares"}
       </button>
-      {isBuySuccess && (
-        <p className="mt-2 text-green-600">Purchase successful!</p>
+
+      {Date.now() > Number(market.endTime) * 1000 && (
+        <button
+          onClick={handleResolveMarket}
+          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 my-2 px-4 rounded disabled:bg-gray-400"
+        >
+          Resolve Market
+        </button>
       )}
+
+      {isBuySuccess && <p className="mt-2 text-green-600">successful!</p>}
     </div>
   );
 };
