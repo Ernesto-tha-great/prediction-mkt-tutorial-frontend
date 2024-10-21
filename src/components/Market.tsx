@@ -2,7 +2,7 @@
 import { EvmPriceServiceConnection } from "@pythnetwork/pyth-evm-js";
 import { useState } from "react";
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-import { parseUnits, formatUnits, parseEther, pad, hexToBytes } from "viem";
+import { formatUnits, parseEther } from "viem";
 import { marketAddress, marketAbi } from "../constants";
 
 interface Props {

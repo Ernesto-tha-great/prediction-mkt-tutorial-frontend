@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   useAccount,
   useReadContract,
@@ -11,7 +11,7 @@ import {
 import { useWeb3Modal } from "@web3modal/wagmi/react";
 import { marketAddress, marketAbi, tokenAbi, tokenAddress } from "../constants";
 import Market from "./Market";
-import { formatEther, formatUnits, parseUnits } from "viem";
+import { parseUnits } from "viem";
 
 const Markets = () => {
   const { address, isConnected } = useAccount();
