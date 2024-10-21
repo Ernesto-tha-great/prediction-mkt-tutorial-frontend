@@ -1,5 +1,4 @@
 import Markets from "@/components/Markets";
-import Image from "next/image";
 
 export default function Home() {
   return (
